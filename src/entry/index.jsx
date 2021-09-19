@@ -15,15 +15,15 @@ let formatMessage = messageData => messageData.defaultMessage;
 
 const translationMap = {
     'ja': {
-        'gui.extension.tplinkSmarthomeLocal.description': 'Xcratch 拡張の例'
+        'gui.extension.tplinkSmarthomeLocal.description': 'TP-Link Smarthome のデバイスをローカルのウェブサーバーで操作する'
     },
     'ja-Hira': {
-        'gui.extension.tplinkSmarthomeLocal.description': 'Xcratch (えくすくらっち)かくちょうのれい'
+        'gui.extension.tplinkSmarthomeLocal.description': 'TP-Link Smarthome のデバイスをローカルのウェブサーバーでそうさする'
     }
 };
 
 const entry = {
-    name: 'TP-Link Smarthome Local',
+    name: 'TP-Link Smarthome',
     extensionId: 'tplinkSmarthomeLocal',
     extensionURL: 'https://yokobond.github.io/xcx-tplink-smarthome-local/dist/tplinkSmarthomeLocal.mjs',
     collaborator: 'yokobond',
@@ -31,7 +31,7 @@ const entry = {
     insetIconURL: insetIconURL,
     get description () {
         return formatMessage({
-            defaultMessage: 'an extension for Xcratch',
+            defaultMessage: 'Control devices of TP-Link Smarthome via local web server',
             description: 'Description for this extension',
             id: 'gui.extension.tplinkSmarthomeLocal.description'
         });

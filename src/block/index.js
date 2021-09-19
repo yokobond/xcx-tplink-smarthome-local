@@ -64,7 +64,7 @@ class ExtensionBlocks {
     }
 
     /**
-     * Construct a set of blocks for TP-Link Smarthome Local.
+     * Construct a set of blocks for this extension.
      * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
     constructor (runtime) {
@@ -78,6 +78,9 @@ class ExtensionBlocks {
             // Replace 'formatMessage' to a formatter which is used in the runtime.
             formatMessage = runtime.formatMessage;
         }
+
+        this.defaultServerURL = 'http://localhost:3030';
+        this.serverURL = this.defaultServerURL;
     }
 
     /**
@@ -93,35 +96,146 @@ class ExtensionBlocks {
             showStatusButton: false,
             blocks: [
                 {
-                    opcode: 'do-it',
-                    blockType: BlockType.REPORTER,
+                    opcode: 'isDevicePowerOn',
+                    blockType: BlockType.BOOLEAN,
                     blockAllThreads: false,
                     text: formatMessage({
-                        id: 'tplinkSmarthomeLocal.doIt',
-                        default: 'do it [SCRIPT]',
-                        description: 'execute javascript for example'
+                        id: 'tplinkSmarthomeLocal.isDevicePowerOn',
+                        default: 'device [HOST] is power ON',
+                        description: ''
                     }),
-                    func: 'doIt',
+                    func: 'isDevicePowerOn',
                     arguments: {
-                        SCRIPT: {
+                        HOST: {
                             type: ArgumentType.STRING,
-                            defaultValue: '3 + 4'
+                            defaultValue: '192.168.0.0'
+                        }
+                    }
+                },
+                {
+                    opcode: 'setDevicePower',
+                    blockType: BlockType.COMMAND,
+                    blockAllThreads: false,
+                    text: formatMessage({
+                        id: 'tplinkSmarthomeLocal.setDevicePower',
+                        default: 'device [HOST] power [STATE]',
+                        description: ''
+                    }),
+                    func: 'setDevicePower',
+                    arguments: {
+                        HOST: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '192.168.0.0'
+                        },
+                        STATE: {
+                            type: ArgumentType.STRING,
+                            menu: 'powerStateMenu',
+                            defaultValue: 'OFF'
+                        }
+                    }
+                },
+                {
+                    opcode: 'setServerURL',
+                    blockType: BlockType.COMMAND,
+                    blockAllThreads: false,
+                    text: formatMessage({
+                        id: 'tplinkSmarthomeLocal.setServerURL',
+                        default: 'set server URL [URL]',
+                        description: 'set URL for TP-Link Smarthome web server'
+                    }),
+                    func: 'setServerURL',
+                    arguments: {
+                        URL: {
+                            type: ArgumentType.STRING,
+                            defaultValue: this.defaultServerURL
                         }
                     }
                 }
             ],
             menus: {
+                powerStateMenu: {
+                    acceptReporters: false,
+                    items: ['ON', 'OFF']
+                }
             },
             // eslint-disable-next-line no-use-before-define
             translationMap: extensionTranslations
         };
     }
 
-    doIt (args) {
-        const func = new Function(`return (${args.SCRIPT})`);
-        return func.call(this);
+    isDevicePowerOn (args) {
+        const url = new URL(this.serverURL);
+        url.pathname = 'state';
+        url.search = new URLSearchParams({host: args.HOST}).toString();
+        const req = new Request(
+            url,
+            {
+                method: 'GET',
+                mode: 'cors'
+            }
+        );
+        return new Promise(
+            resolve => {
+                fetch(req)
+                    .then(res => {
+                        if (res.ok){
+                            res.json().then(data => {
+                                if (data.result === 'error') {
+                                    console.log(data.detail);
+                                }
+                                resolve(data.power ? data.power : false);
+                            });
+                        } else {
+                            console.error(`${res.status}: ${res.statusText}, URL: ${req.url}`);
+                            resolve(false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`${error}, URL: ${req.url}`);
+                        resolve(false);
+                    });
+            }
+        );
+
     }
 
+    setDevicePower (args) {
+        const body = {host: args.HOST, power: (args.STATE === 'ON')};
+        const url = new URL(this.serverURL);
+        url.pathname = 'power';
+        const req = new Request(
+            url,
+            {method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body),
+                mode: 'cors'
+            }
+        );
+        return new Promise(
+            resolve => {
+                fetch(req)
+                    .then(res => {
+                        if (res.ok){
+                            res.json().then(data => {
+                                resolve(JSON.stringify(data));
+                            });
+                        } else {
+                            resolve(`${res.status}: ${res.statusText}, URL: ${req.url}`);
+                        }
+                    })
+                    .catch(error => {
+                        resolve(`${error}, URL: ${req.url}`);
+                    });
+            }
+        );
+
+    }
+
+    setServerURL (args) {
+        this.serverURL = args.URL;
+    }
 
     /**
      * Setup format-message for this extension.
@@ -140,10 +254,14 @@ class ExtensionBlocks {
 
 const extensionTranslations = {
     'ja': {
-        'tplinkSmarthomeLocal.doIt': '[SCRIPT] を実行する'
+        'tplinkSmarthomeLocal.isDevicePowerOn': '[HOST] のデバイスが ON である',
+        'tplinkSmarthomeLocal.setDevicePower': '[HOST] のデバイスを [STATE] にする',
+        'tplinkSmarthomeLocal.setServerURL': 'サーバーのURLを [URL] にする'
     },
     'ja-Hira': {
-        'tplinkSmarthomeLocal.doIt': '[SCRIPT] をじっこうする'
+        'tplinkSmarthomeLocal.isDevicePowerOn': '[HOST] のデバイスが ON である',
+        'tplinkSmarthomeLocal.setDevicePower': '[HOST] のデバイスを [STATE] にする',
+        'tplinkSmarthomeLocal.setServerURL': 'サーバーのURLを [URL] にする'
     }
 };
 
