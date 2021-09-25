@@ -202,7 +202,7 @@ class ExtensionBlocks {
     setDevicePower (args) {
         const body = {host: args.HOST, power: (args.STATE === 'ON')};
         const url = new URL(this.serverURL);
-        url.pathname = 'power';
+        url.pathname = 'state';
         const req = new Request(
             url,
             {method: 'POST',
